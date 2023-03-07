@@ -1,0 +1,35 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Http\JsonResponse;
+
+class {{ class }}
+{
+    public function notFound(): JsonResponse
+    {
+        $response['status'] = 'failed';
+        $response['errors'] = 'Data not found.';
+        return response()->json(['data' => $response], 404);
+    }
+
+    public function simpleSuccessResponse(mixed $variable, string $message, int $status_code): JsonResponse
+    {
+        $response['status'] = 'success';
+        $response['message'] = $message;
+        $response['data'] = $variable;
+        return response()->json(['data' => $response], $status_code);
+    }
+
+    public function successResponseWithAllRelationship(mixed $variable, string $message, int $status_code): JsonResponse
+    {
+        $response['status'] = 'success';
+        $response['message'] = $message;
+        $response['data'] = $variable->withTrashed()->with(
+            'createdByUser',
+            'deletedByUser',
+            'updatedByUser'
+        )->first();
+        return response()->json(['data' => $response], $status_code);
+    }
+}

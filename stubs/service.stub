@@ -1,0 +1,65 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Http\JsonResponse;
+use App\Services\BaseService;
+
+class {{ class }} extends BaseService
+{
+    public function destroy($id): JsonResponse
+    {
+        if (!$ = ::withTrashed()->find($id)) {
+            $response['errors'] = ' not found.';
+            return response()->json(['data' => $response], 404);
+        }
+
+        $response['status'] = 'success';
+        $response['message'] = ' Deleted Successfully.';
+        $response[''] = $;
+        return response()->json(['data' => $response], 200);
+    }
+
+    public function index($request): JsonResponse
+    {
+        $response['status'] = 'success';
+        $response[''] = $;
+        return response()->json(['data' => $response], 200);
+    }
+
+    public function restore($id): JsonResponse
+    {
+        if (!$ = ::withTrashed()->find($id)) {
+            $response['errors'] = ' not found.';
+            return response()->json(['data' => $response], 404);
+        }
+
+        $response['status'] = 'success';
+        $response['message'] = ' Restored Successfully.';
+        $response[''] = $;
+        return response()->json(['data' => $response], 200);
+    }
+
+    public function show($id): JsonResponse
+    {
+       $response['status'] = 'success';
+        $response[''] = $;
+        return response()->json(['data' => $response], 200);
+    }
+
+    public function store($request): JsonResponse
+    {
+        $response['status'] =  'success';
+        $response['message'] = ' Created Successfully.';
+        $response[''] = $;
+        return response()->json(['data' => $response], 201);
+    }
+
+    public function update($request): JsonResponse
+    {
+        $response['status'] =  'success';
+        $response['message'] = ' Updated Successfully.';
+        $response[''] = $;
+        return response()->json(['data' => $response], 200);
+    }
+}
