@@ -2,64 +2,133 @@
 
 namespace {{ namespace }};
 
-use Illuminate\Http\JsonResponse;
+use App\Http\Actions\FiltersQuery;
+use {{ namespacedModel }};
 use App\Services\BaseService;
+
+use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class {{ class }} extends BaseService
 {
     public function destroy($id): JsonResponse
     {
-        if (!$ = ::withTrashed()->find($id)) {
-            $response['errors'] = ' not found.';
-            return response()->json(['data' => $response], 404);
+        if (!${{ modelVariable }} = {{ model }}::withTrashed()->find($id)) {
+            return $this->handleError([], '{{ model }} Not Found.', 404);
         }
 
-        $response['status'] = 'success';
-        $response['message'] = ' Deleted Successfully.';
-        $response[''] = $;
-        return response()->json(['data' => $response], 200);
+        ${{ modelVariable }}->forceDeleted();
+
+        return $this->handleResponse([], '', 200);
     }
 
     public function index($request): JsonResponse
     {
-        $response['status'] = 'success';
-        $response[''] = $;
-        return response()->json(['data' => $response], 200);
+        $data = {{ model }}::sorted($request->sorted_by);
+
+        if (isset($request->q)) {
+            $data = {{ model }}::search($data, $request->q);
+        }
+
+        if ($request->filter) {
+            $data = FiltersQuery::filter($data, $request);
+        }
+        return $this->handleResponse($data, '', 200);
     }
 
     public function restore($id): JsonResponse
     {
-        if (!$ = ::withTrashed()->find($id)) {
-            $response['errors'] = ' not found.';
-            return response()->json(['data' => $response], 404);
+        if (!${{ modelVariable }} = {{ model }}::withTrashed()->find($id)) {
+            return $this->handleError([], '{{ model }} Not Found.', 404);
         }
 
-        $response['status'] = 'success';
-        $response['message'] = ' Restored Successfully.';
-        $response[''] = $;
-        return response()->json(['data' => $response], 200);
+        $restored_{{ modelVariable }} = ${{ modelVariable }}->restore();
+
+        return $this->handleResponse($restored_{{ modelVariable }}, '{{ model }} Restored Successfully.', 200);
     }
 
     public function show($id): JsonResponse
     {
-       $response['status'] = 'success';
-        $response[''] = $;
-        return response()->json(['data' => $response], 200);
+        ${{ modelVariable }} = {{ model }}::query();
+
+        if (!${{ modelVariable }}->withTrashed()->find($id)) {
+            return $this->handleError([], '{{ model }} Not Found.', 404);
+        }
+
+        $data = ${{ modelVariable }}->with(['createdBy', 'deletedBy', 'updatedBy'])->first();
+
+        return $this->handleResponse($data, '', 200);
     }
 
     public function store($request): JsonResponse
     {
-        $response['status'] =  'success';
-        $response['message'] = ' Created Successfully.';
-        $response[''] = $;
-        return response()->json(['data' => $response], 201);
+        try {
+            $created_by = Auth::id();
+            $validated_request = $request->validated();
+            $slug = Str::slug($validated_request['slug']);
+
+            ${{ modelVariable }} = {{ model }}::create([
+                'name'            => $validated_request['name'],
+                'slug'            => $slug,
+                'is_active'       => $validated_request['is_active'],
+                'created_by'      => $created_by,
+                'updated_by'      => $created_by,
+            ]);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+
+        return $this->handleResponse(${{ modelVariable }}, '{{ model }} Created Successfully.', 201);
     }
 
-    public function update($request): JsonResponse
+    public function trashed($id): JsonResponse
     {
-        $response['status'] =  'success';
-        $response['message'] = ' Updated Successfully.';
-        $response[''] = $;
-        return response()->json(['data' => $response], 200);
+        if (!${{ modelVariable }} = {{ model }}::withTrashed()->find($id)) {
+            return $this->handleError([], '{{ model }} Not Found.', 404);
+        }
+
+        if (${{ modelVariable }}->onlyTrashed()->find($id)) {
+            return $this->handleError([], 'Selected {{ model }} already in Trashed.', 404);
+        }
+
+        $deleted_by = Auth::id();
+        ${{ modelVariable }}->delete();
+
+        $data = [
+            'deleted_by' => $deleted_by,
+            'is_active'  => 0
+        ];
+
+        $trashed_{{ modelVariable }} = tap(${{ modelVariable }})->update($data);
+
+        return $this->handleResponse($trashed_{{ modelVariable }}, '{{ model }} Trashed Successfully.', 200);
+    }
+
+    public function update($request, $id): JsonResponse
+    {
+        if (!${{ modelVariable }} = {{ model }}::withTrashed()->find($id)) {
+            return $this->handleError([], '{{ model }} Not Found.', 404);
+        }
+
+        try {
+            $validated_request = $request->validated();
+            $updated_by = Auth::id();
+            $slug = Str::slug($validated_request['slug']);
+
+            $data = [
+                'name'            => $validated_request['name'],
+                'slug'            => $slug,
+                'is_active'       => $validated_request['is_active'],
+                'updated_by'      => $updated_by,
+            ];
+
+            $updated_{{ modelVariable }} = tap(${{ modelVariable }})->update($data);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+
+        return $this->handleResponse($updated_{{ modelVariable }}, '{{ model }} Updated Successfully.', 200);
     }
 }
